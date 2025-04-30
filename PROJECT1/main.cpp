@@ -10,6 +10,7 @@ using namespace std;
 typedef unsigned int WindowSize;         // Tipo para dimensiones de ventana
 typedef unsigned short int SceneRenderer;// Tipo para índice de escena
 typedef float WindowBackground;         // Tipo para componentes de color
+typedef float VertexArray[];            // Tipo para definir un array de vertices de tipo float
 
 // Constantes de configuración
 const WindowSize HEIGH = 600;  // Altura de la ventana
@@ -34,7 +35,7 @@ int main(){
     // Inicialización de GLFW y creación de ventana
     initializeGlfw();
     GLFWwindow* window = getWindowObject();
-
+    
     if (window == NULL) {
         cout << "Error creating window object";
         return -1;  // Salir si hay error
