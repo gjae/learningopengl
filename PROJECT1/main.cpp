@@ -180,15 +180,6 @@ void keyCallbackListener(GLFWwindow* window, int key, int scanCode, int action, 
  * @note El llamante es responsable de liberar la memoria con free()
  */
 Figure* getFiguresShapes() {
-    // Definir un triángulo con coordenadas en el espacio normalizado (-1 a 1)
-    Figure triangle = {
-        .figureVertex = {
-            -0.5f, -0.5f , 0.0f,  // Vértice inferior izquierdo
-            0.5f, -0.5f, 0.0f,     // Vértice inferior derecho
-            0.0f, 0.5f, 0.0f       // Vértice superior central
-        }
-    };
-
     // Reservar memoria para 3 figuras (aunque solo usamos 1 actualmente)
     Figure* figures = (Figure*)malloc(sizeof(Figure)*3);
 
@@ -198,7 +189,13 @@ Figure* getFiguresShapes() {
     } 
 
     // Asignar el triángulo como primera figura del arreglo
-    figures[0] = triangle;
+    figures[0] = (Figure){
+        .figureVertex = {
+            -0.5f, -0.5f , 0.0f,  // Vértice inferior izquierdo
+            0.5f, -0.5f, 0.0f,     // Vértice inferior derecho
+            0.0f, 0.5f, 0.0f       // Vértice superior central
+        }
+    };
 
     return figures;
 }
