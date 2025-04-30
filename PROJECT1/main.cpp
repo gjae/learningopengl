@@ -10,7 +10,16 @@ using namespace std;
 typedef unsigned int WindowSize;         // Tipo para dimensiones de ventana
 typedef unsigned short int SceneRenderer;// Tipo para índice de escena
 typedef float WindowBackground;         // Tipo para componentes de color
-typedef float VertexArray[];            // Tipo para definir un array de vertices de tipo float
+typedef float VertexArray[9];            // Tipo para definir un array de vertices de tipo float
+
+/**
+ * Estructura que representa una figura geométrica
+ * @field figureVertex Array de 9 floats que contiene las coordenadas de los vértices
+ *                    (3 vértices con coordenadas x,y,z cada uno)
+ */
+typedef struct {
+    VertexArray figureVertex;
+} Figure;
 
 // Constantes de configuración
 const WindowSize HEIGH = 600;  // Altura de la ventana
@@ -24,6 +33,12 @@ void initializeGlfw();          // Inicializa GLFW con configuraciones básicas
 void framebuffer_size_callback(GLFWwindow* window, int width, int height); // Callback para redimensionamiento
 void keyCallbackListener(GLFWwindow *window, int key, int scanCode, int action, int mods); // Callback para teclas
 
+/**
+ * Obtiene un arreglo de figuras geométricas
+ * @return Puntero a un arreglo dinámico de figuras o NULL en caso de error
+ */
+Figure* getFiguresShapes();
+
 // Configuraciones de color de fondo para diferentes escenas
 const WindowBackground SCENE_BACKGROUND[3][4] = {
     { .2f, .3f, .3f, 1.0f},    // Escena 0: Verde azulado oscuro
@@ -31,11 +46,18 @@ const WindowBackground SCENE_BACKGROUND[3][4] = {
     { .0f, 1.0f, .655f, 1.0f}   // Escena 2: Verde azulado claro
 };
 
+/**
+ * Función principal del programa
+ * @return Código de salida (0 para éxito, -1 para error)
+ */
 int main(){
     // Inicialización de GLFW y creación de ventana
     initializeGlfw();
     GLFWwindow* window = getWindowObject();
-    
+    Figure* figure = getFiguresShapes();
+
+    cout << "V " << figure[0].figureVertex[0];
+
     if (window == NULL) {
         cout << "Error creating window object";
         return -1;  // Salir si hay error
@@ -62,6 +84,7 @@ int main(){
 
     // Limpieza final
     glfwTerminate();
+    free(figure);
     return 0;
 }
 
@@ -148,4 +171,34 @@ void keyCallbackListener(GLFWwindow* window, int key, int scanCode, int action, 
         }
         cout << "Procesando " << WindowSceneDisplay << endl;
     }
+}
+
+/**
+ * Genera y retorna un arreglo de figuras geométricas
+ * @return Puntero a un arreglo dinámico de 3 figuras (actualmente solo contiene un triángulo)
+ *         o NULL si falla la asignación de memoria
+ * @note El llamante es responsable de liberar la memoria con free()
+ */
+Figure* getFiguresShapes() {
+    // Definir un triángulo con coordenadas en el espacio normalizado (-1 a 1)
+    Figure triangle = {
+        .figureVertex = {
+            -0.5f, -0.5f , 0.0f,  // Vértice inferior izquierdo
+            0.5f, -0.5f, 0.0f,     // Vértice inferior derecho
+            0.0f, 0.5f, 0.0f       // Vértice superior central
+        }
+    };
+
+    // Reservar memoria para 3 figuras (aunque solo usamos 1 actualmente)
+    Figure* figures = (Figure*)malloc(sizeof(Figure)*3);
+
+    if (figures == NULL) {
+        cout << "Memory allocation error" << endl;
+        return NULL; 
+    } 
+
+    // Asignar el triángulo como primera figura del arreglo
+    figures[0] = triangle;
+
+    return figures;
 }
