@@ -53,6 +53,7 @@ typedef struct {
     unsigned int VBO;           ///< Vertex Buffer Object (almacena datos en memoria de GPU)
     unsigned int vertexShader;  ///< ID del vertex shader compilado
     unsigned int fragmentShader;///< ID del fragment shader compilado
+    unsigned int VAO;
 } Figure;
 
 // Constantes de configuración
@@ -182,6 +183,25 @@ int main(){
     glAttachShader(shaderProgram, figure[WindowSceneDisplay].fragmentShader);
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
+    glVertexAttribPointer(0,3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, figure[WindowSceneDisplay].VBO);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(figure[WindowSceneDisplay].figureVertex), figure[WindowSceneDisplay].figureVertex, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glUseProgram(shaderProgram);
+    
+    // Bind VAO
+    glBindVertexArray(figure[WindowSceneDisplay].VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, figure[WindowSceneDisplay].VAO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(figure[WindowSceneDisplay].figureVertex), figure[WindowSceneDisplay].figureVertex, GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glUseProgram(shaderProgram);
+    glBindVertexArray(figure[WindowSceneDisplay].VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 
     // Loop principal de renderizado
     while (!glfwWindowShouldClose(window)) {
@@ -325,13 +345,14 @@ Figure* getFiguresShapes() {
             0.0f, 0.5f, 0.0f       // Vértice superior central
         },
         .vertexShader = glCreateShader(GL_VERTEX_SHADER),
-        .fragmentShader = glCreateShader(GL_FRAGMENT_SHADER)
+        .fragmentShader = glCreateShader(GL_FRAGMENT_SHADER),
     };
 
     // Generar y configurar VBO (Vertex Buffer Object)
     glGenBuffers(1, &figures[0].VBO);
     glBindBuffer(GL_ARRAY_BUFFER, figures[0].VBO);
 
+    glGenVertexArrays(1, &figures[0].VAO);
     return figures;
 }
 
