@@ -129,7 +129,7 @@ Figure* getFiguresShapes();
  * @param source Primer carácter del código fuente del shader
  * @warning Versión simplificada - maneja solo primer carácter del source
  */
-void configureShader(unsigned int shader, char source);
+void configureShader(unsigned int shader, const char* source);
 
 /**
  * @var SCENE_BACKGROUND
@@ -173,39 +173,32 @@ int main(){
     // Configurar callback de teclado
     glfwSetKeyCallback(window, keyCallbackListener);
 
-    // Configuración de shaders
-    configureShader(figure[WindowSceneDisplay].vertexShader, *vertexShaderSource);
-    configureShader(figure[WindowSceneDisplay].fragmentShader, *fragmentShaderSource);
-
-    // Creación y enlace del programa shader
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, figure[WindowSceneDisplay].vertexShader);
-    glAttachShader(shaderProgram, figure[WindowSceneDisplay].fragmentShader);
-    glLinkProgram(shaderProgram);
-    glUseProgram(shaderProgram);
-    glVertexAttribPointer(0,3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, figure[WindowSceneDisplay].VBO);
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(figure[WindowSceneDisplay].figureVertex), figure[WindowSceneDisplay].figureVertex, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glUseProgram(shaderProgram);
-    
-    // Bind VAO
-    glBindVertexArray(figure[WindowSceneDisplay].VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, figure[WindowSceneDisplay].VAO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(figure[WindowSceneDisplay].figureVertex), figure[WindowSceneDisplay].figureVertex, GL_STATIC_DRAW);
-    glVertexAttribPointer(0,3,GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glUseProgram(shaderProgram);
-    glBindVertexArray(figure[WindowSceneDisplay].VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
     // Loop principal de renderizado
     while (!glfwWindowShouldClose(window)) {
-        // Establecer color de fondo según escena actual
+        // Configurar shaders (fuera del loop)
+        configureShader(figure[0].vertexShader, vertexShaderSource);
+        configureShader(figure[0].fragmentShader, fragmentShaderSource);
+        
+        // Crear y linkear programa de shaders
+        unsigned int shaderProgram = glCreateProgram();
+        glAttachShader(shaderProgram, figure[0].vertexShader);
+        glAttachShader(shaderProgram, figure[0].fragmentShader);
+        glLinkProgram(shaderProgram);
+        
+        // Verificar errores de linking
+        int success;
+        char infoLog[512];
+        glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+        if(!success) {
+            glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+            std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+        }
+        
+        // Eliminar los shaders (ya están linkeados)
+        glDeleteShader(figure[0].vertexShader);
+        glDeleteShader(figure[0].fragmentShader);
+
+        // Limpiar pantalla
         glClearColor(
             SCENE_BACKGROUND[WindowSceneDisplay][0], 
             SCENE_BACKGROUND[WindowSceneDisplay][1], 
@@ -214,14 +207,20 @@ int main(){
         );
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // Dibujar el triángulo
+        glUseProgram(shaderProgram);
+        glBindVertexArray(figure[0].VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        
         // Intercambiar buffers y procesar eventos
         glfwSwapBuffers(window);
         glfwPollEvents();
+        glDeleteProgram(shaderProgram);
     }
 
-    // Limpieza final de recursos
-    glDeleteShader(figure[WindowSceneDisplay].vertexShader);
-    glDeleteShader(figure[WindowSceneDisplay].fragmentShader);
+    // Limpieza final
+    glDeleteVertexArrays(1, &figure[0].VAO);
+    glDeleteBuffers(1, &figure[0].VBO);
     free(figure);
     glfwTerminate();
     return 0;
@@ -329,9 +328,7 @@ void keyCallbackListener(GLFWwindow* window, int key, int scanCode, int action, 
  * @note Actualmente solo inicializa un triángulo pero reserva espacio para 3 figuras
  */
 Figure* getFiguresShapes() {
-    // Reservar memoria para 3 figuras (aunque solo usamos 1 inicialmente)
     Figure* figures = (Figure*)malloc(sizeof(Figure)*3);
-
     if (figures == NULL) {
         cout << "Error de asignación de memoria" << endl;
         return NULL; 
@@ -340,19 +337,36 @@ Figure* getFiguresShapes() {
     // Configurar primera figura (triángulo)
     figures[0] = (Figure){
         .figureVertex = {
-            -0.5f, -0.5f , 0.0f,  // Vértice inferior izquierdo
-            0.5f, -0.5f, 0.0f,     // Vértice inferior derecho
-            0.0f, 0.5f, 0.0f       // Vértice superior central
+            -0.5f, -0.5f, 0.0f,  // Vértice inferior izquierdo
+            0.5f, -0.5f, 0.0f,   // Vértice inferior derecho
+            0.0f, 0.5f, 0.0f     // Vértice superior central
         },
         .vertexShader = glCreateShader(GL_VERTEX_SHADER),
-        .fragmentShader = glCreateShader(GL_FRAGMENT_SHADER),
+        .fragmentShader = glCreateShader(GL_FRAGMENT_SHADER)
     };
 
-    // Generar y configurar VBO (Vertex Buffer Object)
-    glGenBuffers(1, &figures[0].VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, figures[0].VBO);
+    figures[0].VBO = 0;
+    figures[0].VAO = 0;
 
+    // Generar y configurar VAO y VBO
     glGenVertexArrays(1, &figures[0].VAO);
+    glGenBuffers(1, &figures[0].VBO);
+    
+    // Bind VAO primero
+    glBindVertexArray(figures[0].VAO);
+    
+    // Luego bind y configura el VBO
+    glBindBuffer(GL_ARRAY_BUFFER, figures[0].VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(figures[0].figureVertex), figures[0].figureVertex, GL_STATIC_DRAW);
+    
+    // Configurar atributos de vértice
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    
+    // Desbindear VBO y VAO (VBO primero)
+    glBindBuffer(GL_ARRAY_BUFFER, 0); 
+    glBindVertexArray(0);
+
     return figures;
 }
 
@@ -363,8 +377,14 @@ Figure* getFiguresShapes() {
  * @warning Implementación simplificada - solo usa primer carácter del source
  * @note En una implementación real debería manejar strings completos y verificar errores
  */
-void configureShader(unsigned int shader, char source) {
-    char* shaderSource = &source;
-    glShaderSource(shader, 1, &shaderSource, NULL);
+void configureShader(unsigned int shader, const char* source) {
+    glShaderSource(shader, 1, &source, NULL);
     glCompileShader(shader);
+
+    int success;
+    char shaderInfoLog[521];
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        cout << "ERROR::SHADER::COMPILATION_FAIL" << shaderInfoLog << endl;
+    }
 }
