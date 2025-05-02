@@ -345,6 +345,22 @@ Figure* getFiguresShapes() {
         .fragmentShader = glCreateShader(GL_FRAGMENT_SHADER)
     };
 
+
+    // Segunda configuracion para rectangulo
+    figures[1] = (Figure){
+        .figureVertex = {
+
+        }
+    };
+
+
+    // Tercera configuracion para pentagono
+    figures[2] = (Figure){
+        .figureVertex = {
+
+        }
+    };
+    
     figures[0].VBO = 0;
     figures[0].VAO = 0;
 
