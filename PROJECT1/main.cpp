@@ -40,7 +40,7 @@ typedef float WindowBackground;
  * @typedef VertexArray
  * @brief Tipo para array de 9 floats (3 vértices con coordenadas x,y,z cada uno)
  */
-typedef float VertexArray[9];
+typedef float VertexArray[27];
 /** @} */ // Final del grupo tipos
 
 /**
@@ -54,6 +54,7 @@ typedef struct {
     unsigned int vertexShader;  ///< ID del vertex shader compilado
     unsigned int fragmentShader;///< ID del fragment shader compilado
     unsigned int VAO;
+    const char* fragmentShaderSource;
 } Figure;
 
 // Constantes de configuración
@@ -72,17 +73,6 @@ const char* vertexShaderSource = "#version 330 core\n"
     "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
     "}\0";
 
-/**
- * @var fragmentShaderSource
- * @brief Código fuente GLSL del fragment shader (versión 330 core)
- * @details Genera color naranja fijo (RGB: 1.0, 0.5, 0.2) para todos los fragmentos
- */
-const char* fragmentShaderSource = "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\0";
 
 SceneRenderer WindowSceneDisplay = 0;  ///< Índice de la escena actualmente activa (0-2)
 
@@ -121,7 +111,7 @@ void keyCallbackListener(GLFWwindow *window, int key, int scanCode, int action, 
  * @return Puntero a arreglo de figuras o NULL en fallo de memoria
  * @note El llamante debe liberar la memoria con free()
  */
-Figure* getFiguresShapes();
+Figure* getFiguresShapes(SceneRenderer figure, int coordFactor);
 
 /**
  * @brief Configura y compila un shader OpenGL
@@ -160,10 +150,7 @@ int main(){
     // Inicialización de GLFW y creación de ventana
     initializeGlfw();
     GLFWwindow* window = getWindowObject();
-    Figure* figure = getFiguresShapes();
 
-    // Debug: Mostrar ID del VBO
-    cout << "VBO ID: " << figure[0].VBO << endl;
 
     if (window == NULL) {
         cout << "Error creating window object";
@@ -176,13 +163,14 @@ int main(){
     // Loop principal de renderizado
     while (!glfwWindowShouldClose(window)) {
         // Configurar shaders (fuera del loop)
-        configureShader(figure[0].vertexShader, vertexShaderSource);
-        configureShader(figure[0].fragmentShader, fragmentShaderSource);
+        Figure* figure = getFiguresShapes(WindowSceneDisplay, WindowSceneDisplay  + 1);
+        configureShader(figure[WindowSceneDisplay].vertexShader, vertexShaderSource);
+        configureShader(figure[WindowSceneDisplay].fragmentShader, figure[WindowSceneDisplay].fragmentShaderSource);
         
         // Crear y linkear programa de shaders
         unsigned int shaderProgram = glCreateProgram();
-        glAttachShader(shaderProgram, figure[0].vertexShader);
-        glAttachShader(shaderProgram, figure[0].fragmentShader);
+        glAttachShader(shaderProgram, figure[WindowSceneDisplay].vertexShader);
+        glAttachShader(shaderProgram, figure[WindowSceneDisplay].fragmentShader);
         glLinkProgram(shaderProgram);
         
         // Verificar errores de linking
@@ -195,8 +183,8 @@ int main(){
         }
         
         // Eliminar los shaders (ya están linkeados)
-        glDeleteShader(figure[0].vertexShader);
-        glDeleteShader(figure[0].fragmentShader);
+        glDeleteShader(figure[WindowSceneDisplay].vertexShader);
+        glDeleteShader(figure[WindowSceneDisplay].fragmentShader);
 
         // Limpiar pantalla
         glClearColor(
@@ -209,19 +197,19 @@ int main(){
 
         // Dibujar el triángulo
         glUseProgram(shaderProgram);
-        glBindVertexArray(figure[0].VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(figure[WindowSceneDisplay].VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3 * (WindowSceneDisplay + 1));
         
         // Intercambiar buffers y procesar eventos
         glfwSwapBuffers(window);
         glfwPollEvents();
         glDeleteProgram(shaderProgram);
+        // Limpieza final
+        glDeleteVertexArrays(1, &figure[WindowSceneDisplay].VAO);
+        glDeleteBuffers(1, &figure[WindowSceneDisplay].VBO);
+        free(figure);
     }
 
-    // Limpieza final
-    glDeleteVertexArrays(1, &figure[0].VAO);
-    glDeleteBuffers(1, &figure[0].VBO);
-    free(figure);
     glfwTerminate();
     return 0;
 }
@@ -327,7 +315,7 @@ void keyCallbackListener(GLFWwindow* window, int key, int scanCode, int action, 
  * @return Puntero a arreglo de figuras o NULL en error
  * @note Actualmente solo inicializa un triángulo pero reserva espacio para 3 figuras
  */
-Figure* getFiguresShapes() {
+Figure* getFiguresShapes(SceneRenderer figure, int coordFactor) {
     Figure* figures = (Figure*)malloc(sizeof(Figure)*3);
     if (figures == NULL) {
         cout << "Error de asignación de memoria" << endl;
@@ -342,38 +330,84 @@ Figure* getFiguresShapes() {
             0.0f, 0.5f, 0.0f     // Vértice superior central
         },
         .vertexShader = glCreateShader(GL_VERTEX_SHADER),
-        .fragmentShader = glCreateShader(GL_FRAGMENT_SHADER)
+        .fragmentShader = glCreateShader(GL_FRAGMENT_SHADER),
+        .fragmentShaderSource = "#version 330 core\n"
+                                "out vec4 FragColor;\n"
+                                "void main()\n"
+                                "{\n"
+                                "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+                                "}\0"
     };
 
 
     // Segunda configuracion para rectangulo
     figures[1] = (Figure){
         .figureVertex = {
-
-        }
+            // first triangle
+            0.5f,  0.5f, 0.0f,  // top right
+            0.5f, -0.5f, 0.0f,  // bottom right
+            -0.5f,  0.5f, 0.0f,  // top left 
+            // second triangle
+            0.5f, -0.5f, 0.0f,  // bottom right
+            -0.5f, -0.5f, 0.0f,  // bottom left
+            -0.5f,  0.5f, 0.0f   // top left
+        },
+        .vertexShader = glCreateShader(GL_VERTEX_SHADER),
+        .fragmentShader = glCreateShader(GL_FRAGMENT_SHADER),
+        .fragmentShaderSource = "#version 330 core\n"
+                                "out vec4 FragColor;\n"
+                                "void main()\n"
+                                "{\n"
+                                "   FragColor = vec4(0.0f, 0.0f, 0.98f, 1.0f);\n"
+                                "}\0"
     };
 
 
-    // Tercera configuracion para pentagono
     figures[2] = (Figure){
         .figureVertex = {
-
-        }
+            // first triangle
+            0.3f,  0.2f, 0.0f,  // top right
+            0.2f, -0.3f, 0.0f,  // bottom right
+            -0.3f,  0.2f, 0.0f,  // top left 
+            // second triangle
+            0.2f, -0.3f, 0.0f,  // bottom right
+            -0.2f, -0.3f, 0.0f,  // bottom left
+            -0.3f,  0.2f, 0.0f,   // top left
+            // Third triangle
+            0.0f, 0.5f, 0.0f, // top middle
+            -0.3f, 0.2f, 0.0f, // bottom left
+            0.3f, 0.2f, 0.0f, // bottom right       
+        },
+        .vertexShader = glCreateShader(GL_VERTEX_SHADER),
+        .fragmentShader = glCreateShader(GL_FRAGMENT_SHADER),
+        .fragmentShaderSource = "#version 330 core\n"
+                                "out vec4 FragColor;\n"
+                                "void main()\n"
+                                "{\n"
+                                "   FragColor = vec4(0.0f, 0.0f, 0.98f, 1.0f);\n"
+                                "}\0"
     };
+    
     
     figures[0].VBO = 0;
     figures[0].VAO = 0;
 
+    figures[1].VBO = 0;
+    figures[1].VAO = 0;
+
+    figures[2].VBO = 0;
+    figures[2].VAO = 0;
+
     // Generar y configurar VAO y VBO
-    glGenVertexArrays(1, &figures[0].VAO);
-    glGenBuffers(1, &figures[0].VBO);
+    glGenVertexArrays(1, &figures[figure].VAO);
+    glGenBuffers(1, &figures[figure].VBO);
     
     // Bind VAO primero
-    glBindVertexArray(figures[0].VAO);
+    glBindVertexArray(figures[figure].VAO);
     
     // Luego bind y configura el VBO
-    glBindBuffer(GL_ARRAY_BUFFER, figures[0].VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(figures[0].figureVertex), figures[0].figureVertex, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, figures[figure].VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(figures[figure].figureVertex), figures[figure].figureVertex, GL_STATIC_DRAW);
     
     // Configurar atributos de vértice
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
