@@ -374,18 +374,31 @@ Figure* getFiguresShapes(SceneRenderer figure, int coordFactor) {
     return figures;
 }
 
+// Función para calcular y mostrar los FPS (Fotogramas Por Segundo)
+// Recibe como parámetro la ventana GLFW donde se mostrarán los FPS
 void calculateFPS(GLFWwindow* window) {
-    static double lastTime = glfwGetTime();
-    static int frameCount = 0;
-    frameCount++;
+    // Variables estáticas para mantener su valor entre llamadas:
+    static double lastTime = glfwGetTime();  // Guarda el tiempo del último cálculo
+    static int frameCount = 0;               // Contador de frames en el intervalo
+    
+    frameCount++;  // Incrementamos el contador de frames en cada llamada
 
+    // Obtenemos el tiempo actual del sistema
     double currentTime = glfwGetTime();
+    
+    // Comprobamos si ha pasado 1 segundo desde el último cálculo
     if (currentTime - lastTime >= 1.0) {
+        // Construimos el string para el título de la ventana
         string title = "OpenGL App - FPS: " + to_string(frameCount);
+        
+        // Actualizamos el título de la ventana con los FPS
         glfwSetWindowTitle(window, title.c_str());
         
-        frameCount = 0;
-        lastTime = currentTime;
+        // Reiniciamos los contadores para el próximo intervalo
+        frameCount = 0;       // Reseteamos el contador de frames
+        lastTime = currentTime; // Actualizamos el tiempo de referencia
+        
+        // Opcional: Mostramos también por consola (útil para depuración)
         cout << title << endl;
     }
 }
