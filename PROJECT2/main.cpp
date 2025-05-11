@@ -101,6 +101,8 @@ void keyCallbackListener(GLFWwindow *window, int key, int scanCode, int action, 
  */
 Figure* getFiguresShapes(SceneRenderer figure, int coordFactor);
 
+void calculateFPS(GLFWwindow* window);
+
 
 /**
  * @var SCENE_BACKGROUND
@@ -156,6 +158,7 @@ int main(){
         );
         glClear(GL_COLOR_BUFFER_BIT);
         ourShader.use();
+        calculateFPS(window);
         // Dibujar el triángulo
         glBindVertexArray(figure[WindowSceneDisplay].VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3 * (WindowSceneDisplay + 1));
@@ -369,4 +372,20 @@ Figure* getFiguresShapes(SceneRenderer figure, int coordFactor) {
     glBindVertexArray(0);
 
     return figures;
+}
+
+void calculateFPS(GLFWwindow* window) {
+    static double lastTime = glfwGetTime();
+    static int frameCount = 0;
+    frameCount++;
+
+    double currentTime = glfwGetTime();
+    if (currentTime - lastTime >= 1.0) {
+        string title = "OpenGL App - FPS: " + to_string(frameCount);
+        glfwSetWindowTitle(window, title.c_str());
+        
+        frameCount = 0;
+        lastTime = currentTime;
+        cout << title << endl;
+    }
 }
